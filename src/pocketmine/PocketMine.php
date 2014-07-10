@@ -184,21 +184,23 @@ namespace pocketmine {
 		return $messages;
 	}
 
-    function report_shutdown_error()
-    {
+    function report_shutdown_error(){
+        global $logger;
+
         $payload = base64_encode(json_encode(array(
             'error' => error_get_last(),
         )));
 
-        file_get_contents("http://developers.pocketmine.net/api/crash/report", false, stream_context_create(array(
-            'http' => array(
-                'method' => "POST",
-                'header' => "Content-Type: application/x-www-form-encoded\r\n",
-                'content' => http_build_query(array(
-                    'payload' => $payload,
-                )),
-            ),
-        )));
+        $response = Utils::postURL("http://developers.pocketmine.net/api/crash/report", array(
+            'payload' => $payload,
+        ));
+
+        $id = json_decode($response, true)['id'];
+
+        $logger->critical("Automatic Crash Report ID: {$id}. Please refer this when creating a support request.");
+        $logger->shutdown();
+        $logger->join();
+        exit(1); //Exit with error
     }
 
     register_shutdown_function("\\pocketmine\\report_shutdown_error");
@@ -241,6 +243,8 @@ namespace pocketmine {
      * @param $Exception \Exception
      */
     function exception_handler($Exception){
+        global $logger;
+
         $payload = base64_encode(json_encode(array(
             'exception_name' => get_class($Exception),
             'message' => $Exception->getMessage(),
@@ -249,15 +253,16 @@ namespace pocketmine {
             'trace' => $Exception->getTraceAsString(),
         )));
 
-        file_get_contents("http://developers.pocketmine.net/api/crash/report", false, stream_context_create(array(
-            'http' => array(
-                'method' => "POST",
-                'header' => "Content-Type: application/x-www-form-encoded\r\n",
-                'content' => http_build_query(array(
-                    'payload' => $payload,
-                )),
-            ),
-        )));
+        $response = Utils::postURL("http://developers.pocketmine.net/api/crash/report", array(
+            'payload' => $payload,
+        ));
+
+        $id = json_decode($response, true)['id'];
+
+        $logger->critical("Automatic Crash Report ID: {$id}. Please refer this when creating a support request.");
+        $logger->shutdown();
+        $logger->join();
+        exit(1); //Exit with error
     }
 
     set_exception_handler("\\pocketmine\\exception_handler");
