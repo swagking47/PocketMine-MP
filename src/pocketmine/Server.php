@@ -1707,6 +1707,15 @@ class Server{
 		}
 	}
 
+    public function shutdown_error_handler(){
+        /*
+         * A custom function to report the crash to a central tracking system.
+         */
+        report_shutdown_error();
+        //And then shut down the server forcefully.
+        $this->forceShutdown();
+    }
+
 	/**
 	 * Starts the PocketMine-MP server and starts processing ticks and packets
 	 */
@@ -1732,7 +1741,10 @@ class Server{
 		$this->tickCounter = 0;
 
 		//register_shutdown_function(array($this, "dumpError"));
-		register_shutdown_function(array($this, "forceShutdown"));
+        //This overwrites the previous shutdown function registered in PocketMine.php. This one stops the tick system, while the previous
+        //one did not.
+		register_shutdown_function(array($this, "shutdown_error_handler"));
+
 		if(function_exists("pcntl_signal")){
 			pcntl_signal(SIGTERM, array($this, "shutdown"));
 			pcntl_signal(SIGINT, array($this, "shutdown"));

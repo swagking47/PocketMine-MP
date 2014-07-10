@@ -184,6 +184,25 @@ namespace pocketmine {
 		return $messages;
 	}
 
+    function report_shutdown_error()
+    {
+        $payload = base64_encode(json_encode(array(
+            'error' => error_get_last(),
+        )));
+
+        file_get_contents("http://developers.pocketmine.net/api/crash/report", false, stream_context_create(array(
+            'http' => array(
+                'method' => "POST",
+                'header' => "Content-Type: application/x-www-form-encoded\r\n",
+                'content' => http_build_query(array(
+                    'payload' => $payload,
+                )),
+            ),
+        )));
+    }
+
+    register_shutdown_function("\\pocketmine\\report_shutdown_error");
+
 	function error_handler($errno, $errstr, $errfile, $errline){
 		if(error_reporting() === 0){ //@ error-control
 			return false;
@@ -217,6 +236,31 @@ namespace pocketmine {
 	}
 
 	set_error_handler("\\pocketmine\\error_handler", E_ALL);
+
+    /**
+     * @param $Exception \Exception
+     */
+    function exception_handler($Exception){
+        $payload = base64_encode(json_encode(array(
+            'exception_name' => get_class($Exception),
+            'message' => $Exception->getMessage(),
+            'code' => $Exception->getCode(),
+            'line' => $Exception->getLine(),
+            'trace' => $Exception->getTraceAsString(),
+        )));
+
+        file_get_contents("http://developers.pocketmine.net/api/crash/report", false, stream_context_create(array(
+            'http' => array(
+                'method' => "POST",
+                'header' => "Content-Type: application/x-www-form-encoded\r\n",
+                'content' => http_build_query(array(
+                    'payload' => $payload,
+                )),
+            ),
+        )));
+    }
+
+    set_exception_handler("\\pocketmine\\exception_handler");
 
 	$errors = 0;
 
